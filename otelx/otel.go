@@ -87,8 +87,8 @@ func (t *Tracer) Tracer() ITracer {
 
 // WithOTLP returns a new tracer with the underlying OpenTelemetry Tracer
 // replaced.
-func (t *Tracer) WithOTLP(other trace.Tracer) *Tracer {
-	return &Tracer{other}
+func (t *Tracer) WithOTLP(other Tracer) *Tracer {
+	return &Tracer{}
 }
 
 // Provider returns a TracerProvider which in turn yields this tracer unmodified.
