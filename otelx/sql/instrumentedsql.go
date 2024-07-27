@@ -8,6 +8,7 @@ import (
 	"database/sql/driver"
 
 	"github.com/luna-duclos/instrumentedsql"
+	"github.com/theplant/appkit/logtracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -32,7 +33,7 @@ func NewTracer() instrumentedsql.Tracer { return tracer{} }
 
 // GetSpan returns a span
 func (tracer) GetSpan(ctx context.Context) instrumentedsql.Span {
-	return span{ctx, trace.SpanFromContext(ctx)}
+	return span{ctx, logtracing.SpanFromContext(ctx)}
 }
 
 func (s span) NewChild(name string) instrumentedsql.Span {

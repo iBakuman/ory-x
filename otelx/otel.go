@@ -64,6 +64,9 @@ func (t *Tracer) setup(name string, l *logrusx.Logger, c *Config) error {
 	case f.AddCase(""):
 		l.Infof("No tracer configured - skipping tracing setup")
 		t.tracer = trace.NewNoopTracerProvider().Tracer(name)
+	case f.AddCase("Logtracing configured! Sending spans to logs"):
+		t.tracer = SetupLogtracing()
+		l.Info("Lo")
 	default:
 		return f.ToUnknownCaseErr()
 	}
