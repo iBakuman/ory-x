@@ -8,10 +8,8 @@ import (
 	"database/sql/driver"
 
 	"github.com/luna-duclos/instrumentedsql"
+	"github.com/pkg/errors"
 	"github.com/theplant/appkit/logtracing"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 )
 
 const tracingComponent = "github.com/ory/x/otelx/sql"
@@ -19,8 +17,7 @@ const tracingComponent = "github.com/ory/x/otelx/sql"
 type (
 	tracer struct{}
 	span   struct {
-		ctx    context.Context
-		parent trace.Span
+		ctx context.Context
 	}
 )
 
@@ -33,25 +30,29 @@ func NewTracer() instrumentedsql.Tracer { return tracer{} }
 
 // GetSpan returns a span
 func (tracer) GetSpan(ctx context.Context) instrumentedsql.Span {
-	return span{ctx, logtracing.SpanFromContext(ctx)}
+	ctx, _ = logtracing.StartSpan(ctx, tracingComponent)
+	return span{ctx: ctx}
 }
 
 func (s span) NewChild(name string) instrumentedsql.Span {
-	ctx, child := s.parent.TracerProvider().Tracer(tracingComponent).Start(s.ctx, name, trace.WithSpanKind(trace.SpanKindClient))
-	return span{ctx, child}
+	nCtx, _ := logtracing.StartSpan(s.ctx, name)
+	return span{ctx: nCtx}
 }
 
 func (s span) SetLabel(k, v string) {
-	s.parent.SetAttributes(attribute.String(k, v))
+	logtracing.AppendSpanKVs(s.ctx, k, v)
 }
 
 func (s span) SetError(err error) {
-	if err == nil || err == driver.ErrSkip {
+	if err == nil || errors.Is(err, driver.ErrSkip) {
 		return
 	}
-	s.parent.SetStatus(codes.Error, err.Error())
+	logtracing.AppendSpanKVs(s.ctx, "error", err.Error())
 }
 
 func (s span) Finish() {
-	s.parent.End()
+	t := logtracing.SpanFromContext(s.ctx)
+	if t != nil {
+		t.End()
+	}
 }
